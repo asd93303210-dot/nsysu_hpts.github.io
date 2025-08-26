@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高壓艙申請表</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>高壓艙申請表</h1>
+            <p>請填寫以下資料以申請高壓艙測試服務</p>
+        </header>
+
+        <!-- 頁面導航 -->
+        <nav class="page-navigation">
+            <div class="nav-item active" data-page="1">
+                <span class="nav-number">1</span>
+                <span class="nav-text">委託單位資料</span>
+            </div>
+            <div class="nav-item" data-page="2">
+                <span class="nav-number">2</span>
+                <span class="nav-text">設備資料</span>
+            </div>
+            <div class="nav-item" data-page="3">
+                <span class="nav-number">3</span>
+                <span class="nav-text">測試要求</span>
+            </div>
+            <div class="nav-item" data-page="4">
+                <span class="nav-number">4</span>
+                <span class="nav-text">時序圖</span>
+            </div>
+        </nav>
+
+        <!-- 第一頁：委託單位資料 -->
+        <div class="page active" id="page1">
+            <section class="form-section">
+                <h2>第一階段：委託單位資料</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="companyName">單位名稱 *</label>
+                        <input type="text" id="companyName" name="companyName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taxId">統一編號 *</label>
+                        <input type="text" id="taxId" name="taxId" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="address">地址 *</label>
+                        <input type="text" id="address" name="address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPerson">聯絡人 *</label>
+                        <input type="text" id="contactPerson" name="contactPerson" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhone">聯絡電話 *</label>
+                        <input type="tel" id="contactPhone" name="contactPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactEmail">E-mail *</label>
+                        <input type="email" id="contactEmail" name="contactEmail" required>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 第二頁：擬測試設備資料 -->
+        <div class="page" id="page2">
+            <section class="form-section">
+                <h2>第二階段：擬測試設備資料</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="equipmentName">設備名稱 *</label>
+                        <input type="text" id="equipmentName" name="equipmentName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="equipmentModel">型號 *</label>
+                        <input type="text" id="equipmentModel" name="equipmentModel" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="equipmentSpecs">尺寸及規格 *</label>
+                        <textarea id="equipmentSpecs" name="equipmentSpecs" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="equipmentPhoto">設備照片</label>
+                        <input type="file" id="equipmentPhoto" name="equipmentPhoto" accept="image/*">
+                        <div id="photoPreview" class="photo-preview"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="technicalData">其它技術資料</label>
+                        <textarea id="technicalData" name="technicalData" rows="4"></textarea>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 第三頁：壓力測試要求 -->
+        <div class="page" id="page3">
+            <section class="form-section">
+                <h2>第三階段：壓力測試要求</h2>
+                <div class="pressure-test-container">
+                    <div class="test-sequence" id="testSequence">
+                        <!-- 測試序列將在這裡動態生成 -->
+                    </div>
+                    <button type="button" id="addTestStep" class="btn btn-secondary">新增測試步驟</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- 第四頁：時序圖預覽 -->
+        <div class="page" id="page4">
+            <section class="form-section">
+                <h2>第四階段：測試時序圖預覽</h2>
+                <div class="timeline-container">
+                    <canvas id="timelineCanvas" width="800" height="400"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- 表單控制按鈕 -->
+        <div class="form-controls">
+            <button type="button" id="prevBtn" class="btn btn-secondary">上一步</button>
+            <button type="button" id="nextBtn" class="btn btn-primary">下一步</button>
+            <button type="submit" id="submitBtn" class="btn btn-success" style="display: none;">生成文件</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
