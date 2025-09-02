@@ -1548,15 +1548,17 @@ function calculateBasePricing(maxPressure, totalTimeMinutes) {
 	const eightHoursInMinutes = 8 * 60; // 480分鐘
 	
 	if (totalTimeMinutes > threeHoursInMinutes) {
-		// 第4-8小時的超時費用（最多5小時 = 300分鐘）
+		// 第4-8小時（最多5小時 = 300分鐘）
 		const regularOvertimeMinutes = Math.min(totalTimeMinutes - threeHoursInMinutes, 5 * 60);
 		overtimeMinutes = regularOvertimeMinutes;
-		overtimeFee = Math.round((regularOvertimeMinutes / 60) * overtimeRatePerHour);
+		const regularChargeHours = Math.ceil(regularOvertimeMinutes / 60);
+		overtimeFee = regularChargeHours * overtimeRatePerHour;
 		
-		// 第9小時起的延長超時費用（1.5倍）
+		// 第9小時起（1.5倍）
 		if (totalTimeMinutes > eightHoursInMinutes) {
 			extendedOvertimeMinutes = totalTimeMinutes - eightHoursInMinutes;
-			extendedOvertimeFee = Math.round((extendedOvertimeMinutes / 60) * overtimeRatePerHour * 1.5);
+			const extendedChargeHours = Math.ceil(extendedOvertimeMinutes / 60);
+			extendedOvertimeFee = Math.round(extendedChargeHours * overtimeRatePerHour * 1.5);
 		}
 	}
 	
@@ -1605,7 +1607,8 @@ function updatePricingDisplay(baseFee, overtimeFee, overtimeMinutes, extendedOve
 		overtimeFeeElement.textContent = `NT$ ${overtimeFee.toLocaleString()}`;
 		const overtimeH = Math.floor(overtimeMinutes / 60);
 		const overtimeM = overtimeMinutes % 60;
-		const overtimeDisplay = overtimeM > 0 ? `${overtimeH}小時${overtimeM}分鐘` : `${overtimeH}小時`;
+		const roundedOvertimeH = Math.ceil(overtimeMinutes / 60);
+		const overtimeDisplay = overtimeM > 0 ? `${overtimeH}小時${overtimeM}分鐘 (計${roundedOvertimeH}小時)` : `${overtimeH}小時`;
 		overtimeHoursElement.textContent = overtimeDisplay;
 	} else {
 		overtimeSection.style.display = 'none';
@@ -1621,7 +1624,8 @@ function updatePricingDisplay(baseFee, overtimeFee, overtimeMinutes, extendedOve
 		extendedOvertimeFeeElement.textContent = `NT$ ${extendedOvertimeFee.toLocaleString()}`;
 		const extendedH = Math.floor(extendedOvertimeMinutes / 60);
 		const extendedM = extendedOvertimeMinutes % 60;
-		const extendedDisplay = extendedM > 0 ? `${extendedH}小時${extendedM}分鐘` : `${extendedH}小時`;
+		const roundedExtendedH = Math.ceil(extendedOvertimeMinutes / 60);
+		const extendedDisplay = extendedM > 0 ? `${extendedH}小時${extendedM}分鐘 (計${roundedExtendedH}小時)` : `${extendedH}小時`;
 		extendedOvertimeHoursElement.textContent = extendedDisplay;
 	} else {
 		extendedOvertimeSection.style.display = 'none';
