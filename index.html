@@ -17,26 +17,44 @@
         <nav class="page-navigation">
             <div class="nav-item active" data-page="1">
                 <span class="nav-number">1</span>
-                <span class="nav-text">委託單位資料</span>
+                <span class="nav-text">注意事項說明</span>
             </div>
             <div class="nav-item" data-page="2">
                 <span class="nav-number">2</span>
-                <span class="nav-text">設備資料</span>
+                <span class="nav-text">委託單位資料</span>
             </div>
             <div class="nav-item" data-page="3">
                 <span class="nav-number">3</span>
-                <span class="nav-text">測試要求</span>
+                <span class="nav-text">受測物資料</span>
             </div>
             <div class="nav-item" data-page="4">
                 <span class="nav-number">4</span>
-                <span class="nav-text">時序圖</span>
+                <span class="nav-text">壓力測試要求</span>
+            </div>
+            <div class="nav-item" data-page="5">
+                <span class="nav-number">5</span>
+                <span class="nav-text">接線要求</span>
+            </div>
+            <div class="nav-item" data-page="6">
+                <span class="nav-number">6</span>
+                <span class="nav-text">價格試算</span>
             </div>
         </nav>
 
-        <!-- 第一頁：委託單位資料 -->
+        <!-- 第一頁：注意事項說明 -->
         <div class="page active" id="page1">
             <section class="form-section">
-                <h2>第一階段：委託單位資料</h2>
+                <h2>第一階段：注意事項說明</h2>
+                <div class="notice-content">
+                    <p>此頁面將在後續設計中完善...</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- 第二頁：委託單位資料 -->
+        <div class="page" id="page2">
+            <section class="form-section">
+                <h2>第二階段：委託單位資料</h2>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="companyName">單位名稱 *</label>
@@ -66,55 +84,335 @@
             </section>
         </div>
 
-        <!-- 第二頁：擬測試設備資料 -->
-        <div class="page" id="page2">
+        <!-- 第三頁：受測物資料 -->
+        <div class="page" id="page3">
             <section class="form-section">
-                <h2>第二階段：擬測試設備資料</h2>
+                <h2>第三階段：受測物資料</h2>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="equipmentName">設備名稱 *</label>
+                        <label for="equipmentName">受測物名稱 *</label>
                         <input type="text" id="equipmentName" name="equipmentName" required>
                     </div>
                     <div class="form-group">
-                        <label for="equipmentModel">型號 *</label>
-                        <input type="text" id="equipmentModel" name="equipmentModel" required>
+                        <label for="equipmentModel">數量 *</label>
+                        <select id="equipmentModel" name="equipmentModel" required>
+                            <option value="">請選擇數量</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
                     </div>
                     <div class="form-group full-width">
                         <label for="equipmentSpecs">尺寸及規格 *</label>
                         <textarea id="equipmentSpecs" name="equipmentSpecs" rows="3" required></textarea>
                     </div>
                     <div class="form-group full-width">
-                        <label for="equipmentPhoto">設備照片</label>
+                        <label for="equipmentPhoto">受測物照片</label>
                         <input type="file" id="equipmentPhoto" name="equipmentPhoto" accept="image/*">
                         <div id="photoPreview" class="photo-preview"></div>
                     </div>
                     <div class="form-group full-width">
-                        <label for="technicalData">其它技術資料</label>
+                        <label for="technicalData">備註</label>
                         <textarea id="technicalData" name="technicalData" rows="4"></textarea>
                     </div>
                 </div>
             </section>
         </div>
 
-        <!-- 第三頁：壓力測試要求 -->
-        <div class="page" id="page3">
+        <!-- 第四頁：壓力測試要求 -->
+        <div class="page" id="page4">
             <section class="form-section">
-                <h2>第三階段：壓力測試要求</h2>
+                <h2>第四階段：壓力測試要求</h2>
                 <div class="pressure-test-container">
                     <div class="test-sequence" id="testSequence">
                         <!-- 測試序列將在這裡動態生成 -->
                     </div>
                     <button type="button" id="addTestStep" class="btn btn-secondary">新增測試步驟</button>
                 </div>
+                
+                <!-- 時序圖生成區域 -->
+                <div class="timeline-section">
+                    <h3>測試時序圖</h3>
+                    <button type="button" id="generateTimelineBtn" class="btn btn-primary">生成時序圖</button>
+                    <div class="timeline-container" id="timelineContainer" style="display: none;">
+                        <canvas id="timelineCanvas" width="800" height="400"></canvas>
+                    </div>
+                </div>
             </section>
         </div>
 
-        <!-- 第四頁：時序圖預覽 -->
-        <div class="page" id="page4">
+        <!-- 第五頁：接線要求 -->
+        <div class="page" id="page5">
             <section class="form-section">
-                <h2>第四階段：測試時序圖預覽</h2>
-                <div class="timeline-container">
-                    <canvas id="timelineCanvas" width="800" height="400"></canvas>
+                <h2>第五階段：接線要求</h2>
+                <div class="wiring-content">
+                    <!-- 系統選擇 -->
+                    <div class="system-selection">
+                        <h3>請選擇要使用的高壓艙系統</h3>
+                        <div class="system-radio-group">
+                            <label class="system-radio-label">
+                                <input type="radio" name="selectedSystem" value="450" id="system450">
+                                <span class="radio-custom"></span>
+                                <div class="radio-content">
+                                    <h4>HPT-450-230L</h4>
+                                    <p>最大操作壓力：450 bar</p>
+                                    <p>艙體空間尺寸：Ø 460 mm × L 600 mm</p>
+                                </div>
+                            </label>
+                            <label class="system-radio-label">
+                                <input type="radio" name="selectedSystem" value="800" id="system800">
+                                <span class="radio-custom"></span>
+                                <div class="radio-content">
+                                    <h4>HPT-800-85L</h4>
+                                    <p>最大操作壓力：800 bar</p>
+                                    <p>艙體空間尺寸：Ø 250 mm × L 800 mm</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- HPT-450-230L 系統選項 -->
+                    <div class="system-section" id="system450Section" style="display: none;">
+                        <h3>HPT-450-230L 系統</h3>
+                        <div class="port-options">
+                            <div class="port-option locked">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="1" data-spec="7/16-20UNF" data-description="" checked disabled>
+                                    <span class="checkmark"></span>
+                                    (1) 7/16-20UNF
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="component-input" value="MCBH6M" readonly>
+                                    <input type="text" class="component-input" value="照明燈" readonly>
+                                </div>
+                            </div>
+                            <div class="port-option locked">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="2" data-spec="1/2-20UNF" data-description="" checked disabled>
+                                    <span class="checkmark"></span>
+                                    (2) 1/2-20UNF
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="component-input" value="DBH8F" readonly>
+                                    <input type="text" class="component-input" value="攝影機" readonly>
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="3" data-spec="7/16-20UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (3) 7/16-20UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="4" data-spec="7/16-20UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (4) 7/16-20UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="5" data-spec="7/16-20UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (5) 7/16-20UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="450" data-port="6" data-spec="1/2-20UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (6) 1/2-20UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HPT-800-85L 系統選項 -->
+                    <div class="system-section" id="system800Section" style="display: none;">
+                        <h3>HPT-800-85L 系統</h3>
+                        <div class="port-options">
+                            <div class="port-option locked">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="800" data-port="1" data-spec="7/16-20UNF" data-description="" checked disabled>
+                                    <span class="checkmark"></span>
+                                    (1) 7/16-20UNF
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="component-input" value="MCBH6M" readonly>
+                                    <input type="text" class="component-input" value="照明燈" readonly>
+                                </div>
+                            </div>
+                            <div class="port-option locked">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="800" data-port="2" data-spec="1/2-20UNF" data-description="" checked disabled>
+                                    <span class="checkmark"></span>
+                                    (2) 1/2-20UNF
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="component-input" value="DBH8F" readonly>
+                                    <input type="text" class="component-input" value="攝影機" readonly>
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="800" data-port="3" data-spec="5/8-18UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (3) 5/8-18UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                            <div class="port-option">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" data-system="800" data-port="4" data-spec="5/8-18UNF" data-description="">
+                                    <span class="checkmark"></span>
+                                    (4) 5/8-18UNF
+                                </label>
+                                <div class="input-group" style="display: none;">
+                                    <input type="text" class="component-input" placeholder="接頭零件規格">
+                                    <input type="text" class="component-input" placeholder="備註">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 第六頁：價格試算 -->
+        <div class="page" id="page6">
+            <section class="form-section">
+                <h2>第六階段：價格試算</h2>
+                <div class="pricing-content">
+                    <!-- 測試參數顯示 -->
+                    <div class="test-params">
+                        <h3>測試參數</h3>
+                        <div class="params-grid">
+                            <div class="param-item">
+                                <label>最大測試壓力：</label>
+                                <span id="maxPressure">-- bar</span>
+                            </div>
+                            <div class="param-item">
+                                <label>總測試時間：</label>
+                                <span id="totalTime">-- 小時</span>
+                            </div>
+                            <div class="param-item">
+                                <label>選用系統：</label>
+                                <span id="selectedSystemName">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 價格計算結果 -->
+                    <div class="price-calculation">
+                        <h3>價格計算</h3>
+                        <div class="calculation-details">
+                            <div class="base-fee">
+                                <div class="fee-item">
+                                    <span class="fee-label">基本費用 (3小時內)：</span>
+                                    <span class="fee-amount" id="baseFee">NT$ 0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="overtime-fee" id="overtimeSection" style="display: none;">
+                                <div class="fee-item">
+                                    <span class="fee-label">超時費用 (第4-8小時)：</span>
+                                    <span class="fee-amount" id="overtimeFee">NT$ 0</span>
+                                </div>
+                                <div class="fee-item">
+                                    <span class="fee-label">超時小時數：</span>
+                                    <span class="fee-amount" id="overtimeHours">0 小時</span>
+                                </div>
+                            </div>
+
+                            <div class="extended-overtime-fee" id="extendedOvertimeSection" style="display: none;">
+                                <div class="fee-item">
+                                    <span class="fee-label">延長超時費用 (第9小時起)：</span>
+                                    <span class="fee-amount" id="extendedOvertimeFee">NT$ 0</span>
+                                </div>
+                                <div class="fee-item">
+                                    <span class="fee-label">延長超時小時數：</span>
+                                    <span class="fee-amount" id="extendedOvertimeHours">0 小時</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 額外服務選項 -->
+                    <div class="additional-services">
+                        <h3>額外服務</h3>
+                        <div class="service-options">
+                            <label class="service-option">
+                                <input type="checkbox" id="englishReport">
+                                <span class="service-checkmark"></span>
+                                <div class="service-content">
+                                    <h4>英文測試報告</h4>
+                                    <p>額外收費 NT$ 12,000</p>
+                                </div>
+                            </label>
+                            <label class="service-option">
+                                <input type="checkbox" id="videoRecording">
+                                <span class="service-checkmark"></span>
+                                <div class="service-content">
+                                    <h4>錄影服務</h4>
+                                    <p>額外收費 標準費用的 5%</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 總計 -->
+                    <div class="total-summary">
+                        <div class="total-breakdown">
+                            <div class="total-item">
+                                <span class="total-label">基本測試費用：</span>
+                                <span class="total-amount" id="basicTestFee">NT$ 0</span>
+                            </div>
+                            <div class="total-item" id="englishReportFee" style="display: none;">
+                                <span class="total-label">英文報告費用：</span>
+                                <span class="total-amount">NT$ 12,000</span>
+                            </div>
+                            <div class="total-item" id="videoRecordingFee" style="display: none;">
+                                <span class="total-label">錄影服務費用：</span>
+                                <span class="total-amount" id="videoFeeAmount">NT$ 0</span>
+                            </div>
+                        </div>
+                        <div class="final-total">
+                            <span class="final-label">總計：</span>
+                            <span class="final-amount" id="finalTotal">NT$ 0</span>
+                        </div>
+                    </div>
+
+                    <!-- 優惠說明 -->
+                    <div class="discount-notice">
+                        <p><strong>優惠說明：</strong>累計申請3次以上者可享有優惠價格，詳情請洽相關人員。</p>
+                    </div>
                 </div>
             </section>
         </div>
