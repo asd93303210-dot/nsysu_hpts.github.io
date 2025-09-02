@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高壓艙申請表</title>
+    <title>高壓模擬實驗觀測系統申請表</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>高壓艙申請表</h1>
-            <p>請填寫以下資料以申請高壓艙測試服務</p>
+            <h1>高壓模擬實驗觀測系統申請表</h1>
         </header>
 
         <!-- 頁面導航 -->
         <nav class="page-navigation">
             <div class="nav-item active" data-page="1">
                 <span class="nav-number">1</span>
-                <span class="nav-text">注意事項說明</span>
+                <span class="nav-text">注意事項</span>
             </div>
             <div class="nav-item" data-page="2">
                 <span class="nav-number">2</span>
@@ -41,12 +40,63 @@
             </div>
         </nav>
 
-        <!-- 第一頁：注意事項說明 -->
+        <!-- 第一頁：注意事項 -->
         <div class="page active" id="page1">
             <section class="form-section">
-                <h2>第一階段：注意事項說明</h2>
+                <h2>第一階段：注意事項</h2>
                 <div class="notice-content">
-                    <p>此頁面將在後續設計中完善...</p>
+                    <ol class="notice-list">
+                        <li><strong>安全規範</strong>
+                            <ul>
+                                <li>測試期間請全程遵從現場人員指示。</li>
+                                <li>未經允許不得靠近或操作任何設備。</li>
+                            </ul>
+                        </li>
+                        <li><strong>受測物條件</strong>
+                            <ul>
+                                <li>請確認受測物結構完整、無漏水、破損、鬆脫等風險。</li>
+                                <li>如需供電或特殊配件，請於第 5 階段「接線要求」裡先行確認。</li>
+                            </ul>
+                        </li>
+                        <li><strong>測試參數</strong>
+                            <ul>
+                                <li>請於第 4 階段明確填寫增壓/降壓速率、持壓時間與目標壓力。</li>
+                                <li>升降壓速率會因受測物影響其速率，實際速率以現場調控為主。</li>
+                            </ul>
+                        </li>
+                        <li><strong>測試時程</strong>
+                            <ul>
+                                <li>實際時程將依現場設備排程與受測物狀況調整。</li>
+                                <li>若需加時費用，將依價格試算標準另行計費。</li>
+                            </ul>
+                        </li>
+                        <li><strong>資料產出</strong>
+                            <ul>
+                                <li>如勾選英文報告或錄影服務，將於測試完成後一併整理。</li>
+                            </ul>
+                        </li>
+                        <li><strong>責任歸屬</strong>
+                            <ul>
+                                <li>測試過程中，若因受測物本身結構或密封缺陷造成損壞，非因人為疏失者，本單位不負賠償責任。</li>
+                            </ul>
+                        </li>
+                        <li><strong>保密義務</strong>
+                            <ul>
+                                <li>若測試涉及機密資料，請先提出保密需求與範本，雙方簽署後始得進行。</li>
+                            </ul>
+                        </li>
+                        <li><strong>報價與付款</strong>
+                            <ul>
+                                <li>第 6 階段金額僅供試算，正式報價以本單位報價單為準。</li>
+                                <li>請於期限內完成款項繳納，將一併交付測試成果與正式單據。</li>
+                            </ul>
+                        </li>
+                        <li><strong>聯絡窗口</strong>
+                            <ul>
+                                <li>如有特殊需求或變更，請即時與承辦人聯繫，以便協調測試安排與時程。</li>
+                            </ul>
+                        </li>
+                    </ol>
                 </div>
             </section>
         </div>
@@ -88,39 +138,18 @@
         <div class="page" id="page3">
             <section class="form-section">
                 <h2>第三階段：受測物資料</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="equipmentName">受測物名稱 *</label>
-                        <input type="text" id="equipmentName" name="equipmentName" required>
+                
+                <div class="test-objects-section">
+                    <div class="test-objects-header">
+                        <h3>受測物清單</h3>
                     </div>
-                    <div class="form-group">
-                        <label for="equipmentModel">數量 *</label>
-                        <select id="equipmentModel" name="equipmentModel" required>
-                            <option value="">請選擇數量</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                        </select>
+                    
+                    <div id="testObjectsList" class="test-objects-list">
+                        <!-- 受測物項目將在這裡動態生成 -->
                     </div>
-                    <div class="form-group full-width">
-                        <label for="equipmentSpecs">尺寸及規格 *</label>
-                        <textarea id="equipmentSpecs" name="equipmentSpecs" rows="3" required></textarea>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="equipmentPhoto">受測物照片</label>
-                        <input type="file" id="equipmentPhoto" name="equipmentPhoto" accept="image/*">
-                        <div id="photoPreview" class="photo-preview"></div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="technicalData">備註</label>
-                        <textarea id="technicalData" name="technicalData" rows="4"></textarea>
+                    
+                    <div class="add-button-container">
+                        <button type="button" id="addTestObject" class="btn btn-secondary">新增受測物</button>
                     </div>
                 </div>
             </section>
@@ -134,13 +163,15 @@
                     <div class="test-sequence" id="testSequence">
                         <!-- 測試序列將在這裡動態生成 -->
                     </div>
-                    <button type="button" id="addTestStep" class="btn btn-secondary">新增測試步驟</button>
+                    <div class="add-button-container">
+                        <button type="button" id="addTestStep" class="btn btn-secondary">新增測試步驟</button>
+                    </div>
                 </div>
                 
                 <!-- 時序圖生成區域 -->
                 <div class="timeline-section">
                     <h3>測試時序圖</h3>
-                    <button type="button" id="generateTimelineBtn" class="btn btn-primary">生成時序圖</button>
+                    <p class="timeline-note">時序圖會根據測試步驟參數自動更新</p>
                     <div class="timeline-container" id="timelineContainer" style="display: none;">
                         <canvas id="timelineCanvas" width="800" height="400"></canvas>
                     </div>
@@ -158,7 +189,7 @@
                         <h3>請選擇要使用的高壓艙系統</h3>
                         <div class="system-radio-group">
                             <label class="system-radio-label">
-                                <input type="radio" name="selectedSystem" value="450" id="system450">
+                                <input type="radio" name="selectedSystem" value="450" id="system450" checked>
                                 <span class="radio-custom"></span>
                                 <div class="radio-content">
                                     <h4>HPT-450-230L</h4>
@@ -407,6 +438,7 @@
                             <span class="final-label">總計：</span>
                             <span class="final-amount" id="finalTotal">NT$ 0</span>
                         </div>
+                        <p class="pricing-note" style="text-align: right;">以上價格為試算價格，實際價格以最終報價為準。</p>
                     </div>
 
                     <!-- 優惠說明 -->

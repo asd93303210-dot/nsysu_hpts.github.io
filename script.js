@@ -2,24 +2,32 @@
 let currentPage = 1;
 let testSteps = [];
 let stepCounter = 1;
+let testObjects = [];
+let testObjectCounter = 1;
 
-// DOM 元素
-const pages = document.querySelectorAll('.page');
-const navItems = document.querySelectorAll('.nav-item');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const submitBtn = document.getElementById('submitBtn');
-const addTestStepBtn = document.getElementById('addTestStep');
-const testSequence = document.getElementById('testSequence');
-const photoInput = document.getElementById('equipmentPhoto');
-const photoPreview = document.getElementById('photoPreview');
-const timelineCanvas = document.getElementById('timelineCanvas');
+// DOM 元素變數（將在DOMContentLoaded時初始化）
+let pages, navItems, prevBtn, nextBtn, submitBtn, addTestStepBtn, testSequence, timelineCanvas, addTestObjectBtn, testObjectsList;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
+	// 初始化DOM元素引用
+	pages = document.querySelectorAll('.page');
+	navItems = document.querySelectorAll('.nav-item');
+	prevBtn = document.getElementById('prevBtn');
+	nextBtn = document.getElementById('nextBtn');
+	submitBtn = document.getElementById('submitBtn');
+	addTestStepBtn = document.getElementById('addTestStep');
+	testSequence = document.getElementById('testSequence');
+	timelineCanvas = document.getElementById('timelineCanvas');
+	addTestObjectBtn = document.getElementById('addTestObject');
+	testObjectsList = document.getElementById('testObjectsList');
+	
+
+	
 	initializeForm();
 	setupEventListeners();
 	addDefaultTestStep();
+	addDefaultTestObject();
 });
 
 // 初始化表單
@@ -27,6 +35,9 @@ function initializeForm() {
 	showPage(1);
 	updateNavigationButtons();
 	updateNavigationHighlight();
+	
+	// 初始化接線要求
+	initializeWiring();
 }
 
 // 設置事件監聽器
@@ -34,14 +45,13 @@ function setupEventListeners() {
 	prevBtn.addEventListener('click', previousPage);
 	nextBtn.addEventListener('click', nextPage);
 	addTestStepBtn.addEventListener('click', addTestStep);
-	photoInput.addEventListener('change', handlePhotoUpload);
+	addTestObjectBtn.addEventListener('click', addTestObject);
+	
 	// 提交→輸出 Word
 	submitBtn.addEventListener('click', exportToDocx);
-	// 生成時序圖
-	document.getElementById('generateTimelineBtn').addEventListener('click', generateTimeline);
 	
 	// 頁面導航點擊事件
-	navItems.forEach(item => {
+	navItems.forEach((item, index) => {
 		item.addEventListener('click', function() {
 			const pageNumber = parseInt(this.getAttribute('data-page'));
 			showPage(pageNumber);
@@ -70,6 +80,11 @@ function showPage(pageNumber) {
 	currentPage = pageNumber;
 	updateNavigationButtons();
 	updateNavigationHighlight();
+	
+	// 如果是第三頁，更新受測物顯示
+	if (pageNumber === 3) {
+		updateTestObjects();
+	}
 	
 	// 如果是第四頁，更新測試步驟
 	if (pageNumber === 4) {
@@ -128,23 +143,27 @@ function previousPage() {
 
 // 添加測試步驟
 function addTestStep() {
+	const prev = testSteps[testSteps.length - 1] || {};
 	const testStep = {
 		id: stepCounter++,
-		type: 'pressure',
-		pressure: '',
-		rate: '',
-		holdTime: '',
+		type: prev.type || 'pressure',
+		pressure: prev.pressure || '',
+		rate: prev.rate || '',
+		holdTime: prev.holdTime || '',
 		description: ''
 	};
 	
 	testSteps.push(testStep);
 	updateTestSteps();
+	// 立即更新一次時序圖
+	autoUpdateTimeline();
 }
 
 // 移除測試步驟
 function removeTestStep(stepId) {
 	testSteps = testSteps.filter(step => step.id !== stepId);
 	updateTestSteps();
+	autoUpdateTimeline();
 }
 
 // 更新測試步驟顯示
@@ -160,6 +179,9 @@ function updateTestSteps() {
 	if (testSteps.length === 0) {
 		addDefaultTestStep();
 	}
+	
+	// 任何重繪後都觸發時序圖自動更新
+	autoUpdateTimeline();
 }
 
 // 創建測試步驟元素
@@ -170,12 +192,22 @@ function createTestStepElement(step, stepNumber) {
 	// 根據測試類型顯示不同的表單欄位
 	let typeSpecificFields = '';
 	if (step.type === 'pressure' || step.type === 'depressurize') {
-		// 增壓/降壓：顯示速率選擇
+		// 增壓/降壓：顯示速率選擇（下拉）
+		const buildRateOptions = (min, max, stepVal, current) => {
+			const opts = [];
+			for (let v = min; v <= max + 1e-9; v = Math.round((v + stepVal) * 100) / 100) {
+				const val = v.toFixed(2);
+				opts.push(`<option value="${val}" ${current == val ? 'selected' : ''}>${val}</option>`);
+			}
+			return opts.join('');
+		};
+		const rateSelect = step.type === 'pressure'
+			? `<select onchange="updateStepRate(${step.id}, this.value)">${buildRateOptions(0.05, 0.45, 0.05, step.rate || '')}</select>`
+			: `<select onchange="updateStepRate(${step.id}, this.value)">${buildRateOptions(0.05, 2.00, 0.05, step.rate || '')}</select>`;
 		typeSpecificFields = `
 			<div class="form-group">
 				<label>速率 (bar/min)</label>
-				<input type="number" step="0.1" min="0.1" value="${step.rate || ''}" 
-				       onchange="updateStepRate(${step.id}, this.value)" placeholder="例如: 1.0">
+				${rateSelect}
 			</div>
 		`;
 	} else if (step.type === 'hold') {
@@ -232,6 +264,7 @@ function updateStepType(stepId, type) {
 			delete step.holdTime;
 		}
 		updateTestSteps();
+		autoUpdateTimeline();
 	}
 }
 
@@ -241,6 +274,7 @@ function updateStepRate(stepId, rate) {
 	if (step) {
 		step.rate = rate;
 		updateTestSteps();
+		autoUpdateTimeline();
 	}
 }
 
@@ -250,6 +284,7 @@ function updateStepHoldTime(stepId, holdTime) {
 	if (step) {
 		step.holdTime = holdTime;
 		updateTestSteps();
+		autoUpdateTimeline();
 	}
 }
 
@@ -259,6 +294,7 @@ function updateStepPressure(stepId, pressure) {
 	if (step) {
 		step.pressure = pressure;
 		updateTestSteps();
+		autoUpdateTimeline();
 	}
 }
 
@@ -274,19 +310,19 @@ function updateStepDescription(stepId, description) {
 function generateStepDescription(step) {
 	if (step.type === 'pressure') {
 		if (step.pressure && step.rate) {
-			return `增壓至${step.pressure} ±0.5 bar，速率${step.rate} bar/min。`;
+			return `增壓至${step.pressure} bar，速率${step.rate} bar/min。`;
 		}
-		return `增壓至${step.pressure || ''} ±0.5 bar，速率${step.rate || ''} bar/min。`;
+		return `增壓至${step.pressure || ''} bar，速率${step.rate || ''} bar/min。`;
 	} else if (step.type === 'depressurize') {
 		if (step.pressure && step.rate) {
-			return `降壓至${step.pressure} ±0.5 bar，速率${step.rate} bar/min。`;
+			return `降壓至${step.pressure} bar，速率${step.rate} bar/min。`;
 		}
-		return `降壓至${step.pressure || ''} ±0.5 bar，速率${step.rate || ''} bar/min。`;
+		return `降壓至${step.pressure || ''} bar，速率${step.rate || ''} bar/min。`;
 	} else if (step.type === 'hold') {
 		if (step.pressure && step.holdTime) {
-			return `持壓${step.pressure} ±0.5 bar，持續${step.holdTime} min。`;
+			return `持壓${step.pressure} bar，持續${step.holdTime} min。`;
 		}
-		return `持壓${step.pressure || ''} ±0.5 bar，持續${step.holdTime || ''} min。`;
+		return `持壓${step.pressure || ''} bar，持續${step.holdTime || ''} min。`;
 	}
 	return '';
 }
@@ -301,22 +337,214 @@ function addDefaultTestStep() {
 	
 	testSteps = defaultSteps;
 	updateTestSteps();
+	autoUpdateTimeline();
 }
 
-// 處理照片上傳
-function handlePhotoUpload(event) {
-	const file = event.target.files[0];
+// 添加預設受測物
+function addDefaultTestObject() {
+	const defaultObject = {
+		id: testObjectCounter++,
+		name: '',
+		quantity: '1',
+		size: '',
+		waterStatus: '',
+		photo: '',
+		notes: ''
+	};
+	
+	testObjects = [defaultObject];
+	updateTestObjects();
+}
+
+// 添加受測物
+function addTestObject() {
+	const testObject = {
+		id: testObjectCounter++,
+		name: '',
+		quantity: '1',
+		size: '',
+		waterStatus: '',
+		photo: '',
+		notes: ''
+	};
+	
+	testObjects.push(testObject);
+	updateTestObjects();
+}
+
+// 移除受測物
+function removeTestObject(objectId) {
+	testObjects = testObjects.filter(obj => obj.id !== objectId);
+	updateTestObjects();
+}
+
+// 更新受測物顯示
+function updateTestObjects() {
+	if (!testObjectsList) {
+		return;
+	}
+	
+	testObjectsList.innerHTML = '';
+	
+	testObjects.forEach((obj, index) => {
+		const objectDiv = createTestObjectElement(obj, index + 1);
+		testObjectsList.appendChild(objectDiv);
+	});
+}
+
+// 創建受測物元素
+function createTestObjectElement(obj, objectNumber) {
+	const objectDiv = document.createElement('div');
+	objectDiv.className = 'test-object-item';
+	objectDiv.innerHTML = `
+		<div class="test-object-header">
+			<div class="test-object-title">受測物 ${objectNumber}</div>
+			<button type="button" class="remove-test-object" onclick="removeTestObject(${obj.id})">移除</button>
+		</div>
+		<div class="test-object-form">
+			<div class="form-group">
+				<label>受測物名稱 *</label>
+				<input type="text" value="${obj.name || ''}" onchange="updateTestObjectName(${obj.id}, this.value)" required>
+			</div>
+			<div class="form-group">
+				<label>數量 *</label>
+				<select onchange="updateTestObjectQuantity(${obj.id}, this.value)" required>
+					<option value="">請選擇數量</option>
+					<option value="1" ${obj.quantity === '1' ? 'selected' : ''}>1</option>
+					<option value="2" ${obj.quantity === '2' ? 'selected' : ''}>2</option>
+					<option value="3" ${obj.quantity === '3' ? 'selected' : ''}>3</option>
+					<option value="4" ${obj.quantity === '4' ? 'selected' : ''}>4</option>
+					<option value="5" ${obj.quantity === '5' ? 'selected' : ''}>5</option>
+					<option value="6" ${obj.quantity === '6' ? 'selected' : ''}>6</option>
+					<option value="7" ${obj.quantity === '7' ? 'selected' : ''}>7</option>
+					<option value="8" ${obj.quantity === '8' ? 'selected' : ''}>8</option>
+					<option value="9" ${obj.quantity === '9' ? 'selected' : ''}>9</option>
+					<option value="10" ${obj.quantity === '10' ? 'selected' : ''}>10</option>
+				</select>
+			</div>
+			<div class="form-group full-width">
+				<label>尺寸 *</label>
+				<input type="text" value="${obj.size || ''}" onchange="updateTestObjectSize(${obj.id}, this.value)" required>
+			</div>
+			<div class="form-group">
+				<label>入水狀態 *</label>
+				<select onchange="updateTestObjectWaterStatus(${obj.id}, this.value)" required>
+					<option value="">請選擇入水狀態</option>
+					<option value="下沉" ${obj.waterStatus === '下沉' ? 'selected' : ''}>下沉</option>
+					<option value="上浮" ${obj.waterStatus === '上浮' ? 'selected' : ''}>上浮</option>
+				</select>
+			</div>
+			<div class="form-group full-width">
+				<label>受測物照片</label>
+				<input type="file" accept="image/*" onchange="handleTestObjectPhotoUpload(${obj.id}, this)">
+				<div class="test-object-photo-preview" id="photoPreview_${obj.id}" ${obj.photo ? 'style="display: block;"' : ''}>${obj.photo ? `<img src="${obj.photo}" alt="受測物照片">` : ''}</div>
+			</div>
+			<div class="form-group full-width">
+				<label>備註</label>
+				<textarea rows="3" onchange="updateTestObjectNotes(${obj.id}, this.value)">${obj.notes || ''}</textarea>
+			</div>
+		</div>
+	`;
+	
+	return objectDiv;
+}
+
+// 更新受測物名稱
+function updateTestObjectName(objectId, name) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (obj) {
+		obj.name = name;
+	}
+}
+
+// 更新受測物數量
+function updateTestObjectQuantity(objectId, quantity) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (obj) {
+		obj.quantity = quantity;
+	}
+}
+
+// 更新受測物尺寸
+function updateTestObjectSize(objectId, size) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (obj) {
+		obj.size = size;
+	}
+}
+
+// 更新受測物入水狀態
+function updateTestObjectWaterStatus(objectId, waterStatus) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (obj) {
+		obj.waterStatus = waterStatus;
+	}
+}
+
+// 更新受測物備註
+function updateTestObjectNotes(objectId, notes) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (obj) {
+		obj.notes = notes;
+	}
+}
+
+// 處理受測物照片上傳
+function handleTestObjectPhotoUpload(objectId, input) {
+	const file = input.files[0];
 	if (file) {
 		const reader = new FileReader();
 		reader.onload = function(e) {
-			photoPreview.innerHTML = `<img src="${e.target.result}" alt="設備照片">`;
-			photoPreview.style.display = 'block';
+			const obj = testObjects.find(o => o.id === objectId);
+			if (obj) {
+				obj.photo = e.target.result;
+			}
+			
+			const preview = document.getElementById(`photoPreview_${objectId}`);
+			preview.innerHTML = `<img src="${e.target.result}" alt="受測物照片">`;
+			preview.style.display = 'block';
 		};
 		reader.readAsDataURL(file);
 	}
 }
 
-// 生成時序圖
+// 移除不再使用的照片上傳函數
+// function handlePhotoUpload(event) {
+// 	const file = event.target.files[0];
+// 	if (file) {
+// 		const reader = new FileReader();
+// 		reader.onload = function(e) {
+// 			photoPreview.innerHTML = `<img src="${e.target.result}" alt="設備照片">`;
+// 			photoPreview.style.display = 'block';
+// 		};
+// 		reader.readAsDataURL(file);
+// 	}
+// }
+
+// 自動更新時序圖
+function autoUpdateTimeline() {
+	// 檢查是否有有效的測試步驟
+	const validSteps = testSteps.filter(step => {
+		if (step.type === 'pressure' || step.type === 'depressurize') {
+			return step.pressure && step.rate;
+		} else if (step.type === 'hold') {
+			return step.pressure && step.holdTime;
+		}
+		return false;
+	});
+	
+	// 如果有有效步驟，自動繪製時序圖
+	if (validSteps.length > 0) {
+		drawTimeline();
+		// 顯示時序圖容器
+		document.getElementById('timelineContainer').style.display = 'block';
+	} else {
+		// 如果沒有有效步驟，隱藏時序圖容器
+		document.getElementById('timelineContainer').style.display = 'none';
+	}
+}
+
+// 生成時序圖（保留原函數，但簡化邏輯）
 function generateTimeline() {
 	// 檢查是否有有效的測試步驟
 	const validSteps = testSteps.filter(step => {
@@ -526,9 +754,11 @@ function drawTimeline() {
 
 // 導出為 Word (.docx)
 async function exportToDocx() {
-	// 確保時序圖為最新
-	drawTimeline();
-	// 收集資料
+	try {
+		// 確保時序圖為最新
+		drawTimeline();
+		
+			// 收集資料
 	const formData = {
 		company: {
 			name: document.getElementById('companyName').value || '',
@@ -538,23 +768,38 @@ async function exportToDocx() {
 			contactPhone: document.getElementById('contactPhone').value || '',
 			contactEmail: document.getElementById('contactEmail').value || ''
 		},
-		equipment: {
-			name: document.getElementById('equipmentName').value || '',
-			model: document.getElementById('equipmentModel').value || '',
-			specs: document.getElementById('equipmentSpecs').value || '',
-			technicalData: document.getElementById('technicalData').value || ''
-		},
+		testObjects: testObjects,
 		testSteps: testSteps,
 		wiring: collectWiringData()
 	};
 	
-	const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ImageRun } = window.docx;
+	const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ImageRun, BorderStyle } = window.docx;
 	
 	// 標題
 	const title = new Paragraph({
-		text: '高壓模擬實驗觀測系統使用申請表',
+		children: [
+			new TextRun({
+				text: '高壓模擬實驗觀測系統使用申請表',
+				bold: true,
+				size: 40,
+				font: '微軟正黑體'
+			})
+		],
 		heading: HeadingLevel.TITLE,
 		alignment: AlignmentType.CENTER,
+		spacing: { before: 200, after: 400 }
+	});
+	
+	// 申請日期
+	const dateParagraph = new Paragraph({
+		children: [
+			new TextRun({
+				text: `申請日期：${new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+				font: '微軟正黑體',
+				size: 24
+			})
+		],
+		alignment: AlignmentType.RIGHT,
 		spacing: { after: 300 }
 	});
 	
@@ -568,37 +813,144 @@ async function exportToDocx() {
 		['E-mail', formData.company.contactEmail]
 	].map(([k, v]) => new TableRow({
 		children: [
-			new TableCell({ children: [new Paragraph(k)] }),
-			new TableCell({ children: [new Paragraph(v)] })
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ text: k, bold: true, font: '微軟正黑體', size: 24 })],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 25, type: WidthType.PERCENTAGE },
+				shading: { fill: 'F2F2F2' }
+			}),
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ text: v, font: '微軟正黑體', size: 24 })],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 75, type: WidthType.PERCENTAGE }
+			})
 		]
 	}));
 	const companyTable = new Table({
 		rows: companyRows,
-		width: { size: 100, type: WidthType.PERCENTAGE }
+		width: { size: 100, type: WidthType.PERCENTAGE },
+		borders: {
+			top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+		}
 	});
 	
-	// 設備資料表格
-	const equipRows = [
-		['設備名稱', formData.equipment.name],
-		['型號', formData.equipment.model],
-		['尺寸及規格', formData.equipment.specs],
-		['其它技術資料', formData.equipment.technicalData]
-	].map(([k, v]) => new TableRow({
-		children: [
-			new TableCell({ children: [new Paragraph(k)] }),
-			new TableCell({ children: [new Paragraph(v)] })
-		]
-	}));
-	const equipTable = new Table({
-		rows: equipRows,
-		width: { size: 100, type: WidthType.PERCENTAGE }
-	});
+	// 受測物資料表格
+	let testObjectsContent = [];
+	
+	if (formData.testObjects && formData.testObjects.length > 0) {
+		formData.testObjects.forEach((obj, index) => {
+			testObjectsContent.push(
+				new Paragraph({
+					children: [new TextRun({
+						text: `受測物 ${index + 1}`,
+						font: '微軟正黑體',
+						size: 28
+					})],
+					heading: HeadingLevel.HEADING_3,
+					spacing: { before: 200, after: 100 }
+				})
+			);
+			
+			const objectRows = [
+				['受測物名稱', obj.name || ''],
+				['數量', obj.quantity || ''],
+				['尺寸', obj.size || ''],
+				['入水狀態', obj.waterStatus || ''],
+				['備註', obj.notes || '']
+			].map(([k, v]) => new TableRow({
+				children: [
+					new TableCell({ 
+						children: [new Paragraph({
+							children: [new TextRun({ text: k, bold: true, font: '微軵正黑體', size: 24 })],
+							alignment: AlignmentType.CENTER
+						})],
+						width: { size: 25, type: WidthType.PERCENTAGE },
+						shading: { fill: 'F2F2F2' }
+					}),
+					new TableCell({ 
+						children: [new Paragraph({
+							children: [new TextRun({ text: v, font: '微軟正黑體', size: 24 })],
+							alignment: AlignmentType.CENTER
+						})],
+						width: { size: 75, type: WidthType.PERCENTAGE }
+					})
+				]
+			}));
+			
+			const objectTable = new Table({
+				rows: objectRows,
+				width: { size: 100, type: WidthType.PERCENTAGE },
+				borders: {
+					top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+					bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+					left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+					right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+					insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+					insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+				}
+			});
+			
+			testObjectsContent.push(objectTable);
+			
+			// 如果有照片，添加照片
+			if (obj.photo) {
+				try {
+					const imageData = obj.photo.split(',')[1];
+					const imageBuffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+					
+					testObjectsContent.push(
+						new Paragraph({
+							text: '受測物照片：',
+							spacing: { before: 200, after: 100 }
+						}),
+						new Paragraph({
+							children: [
+								new ImageRun({
+									data: imageBuffer,
+									transformation: {
+										width: 300,
+										height: 200,
+									},
+								}),
+							],
+							alignment: AlignmentType.CENTER,
+						})
+					);
+				} catch (error) {
+					console.error('處理照片時發生錯誤:', error);
+				}
+			}
+		});
+	} else {
+		testObjectsContent.push(
+			new Paragraph({
+				text: '無受測物資料',
+				spacing: { before: 200, after: 100 }
+			})
+		);
+	}
 	
 	// 測試要求（編號清單）
 	const stepParas = [];
 	formData.testSteps.forEach((s, idx) => {
 		const desc = s.description && s.description.trim().length > 0 ? s.description : generateStepDescription(s);
-		stepParas.push(new Paragraph({ text: `${idx + 1}. ${desc}`, spacing: { after: 120 } }));
+		stepParas.push(new Paragraph({ 
+			children: [new TextRun({ 
+				text: `${idx + 1}. ${desc}`, 
+				font: '微軟正黑體',
+				size: 24
+			})], 
+			spacing: { after: 120 } 
+		}));
 	});
 	
 	// 先嘗試讀取Canvas圖片為byte陣列
@@ -612,48 +964,67 @@ async function exportToDocx() {
 	}
 	
 	// 章節標題
-	const h1 = (t) => new Paragraph({ text: t, heading: HeadingLevel.HEADING_1, spacing: { before: 300, after: 200 } });
+	const h1 = (t) => new Paragraph({ 
+		heading: HeadingLevel.HEADING_1, 
+		spacing: { before: 400, after: 200 },
+		children: [
+			new TextRun({
+				text: t,
+				bold: true,
+				size: 32,
+				color: '2C3E50',
+				font: '微軟正黑體'
+			})
+		]
+	});
 	
 	// 接線要求內容
 	const wiringParas = [];
 	if (formData.wiring.selectedSystem) {
-		// 添加選中系統的規格說明
-		wiringParas.push(new Paragraph({ 
-			text: '選用系統規格說明：', 
-			spacing: { before: 200, after: 100 },
-			heading: HeadingLevel.HEADING_2
-		}));
+		// 不再輸出「選用系統規格說明」與系統規格敘述
 		
 		if (formData.wiring.selectedSystem === '450') {
-			wiringParas.push(new Paragraph({ 
-				text: 'HPT-450-230L - 最大操作壓力：450 bar，艙體空間尺寸：Ø 460 mm × L 600 mm', 
-				spacing: { after: 120 } 
-			}));
-			
 			if (formData.wiring.system450.length > 0) {
-				wiringParas.push(new Paragraph({ text: 'HPT-450-230L 系統接線要求：', spacing: { before: 200, after: 100 } }));
+				wiringParas.push(new Paragraph({ 
+					children: [new TextRun({
+						text: 'HPT-450-230L 系統接線要求：',
+						font: '微軟正黑體',
+						size: 24
+					})],
+					spacing: { before: 200, after: 100 } 
+				}));
 				formData.wiring.system450.forEach(item => {
 					const componentText = item.componentSpec ? ` - 接頭零件規格：${item.componentSpec}` : '';
 					const remarkText = item.remark ? ` - 備註：${item.remark}` : '';
 					wiringParas.push(new Paragraph({ 
-						text: `(${item.port}) ${item.spec}${item.description ? ': ' + item.description : ''}${componentText}${remarkText}`, 
+						children: [new TextRun({
+							text: `(${item.port}) ${item.spec}${item.description ? ': ' + item.description : ''}${componentText}${remarkText}`,
+							font: '微軟正黑體',
+							size: 24
+						})],
 						spacing: { after: 80 } 
 					}));
 				});
 			}
 		} else if (formData.wiring.selectedSystem === '800') {
-			wiringParas.push(new Paragraph({ 
-				text: 'HPT-800-85L - 最大操作壓力：800 bar，艙體空間尺寸：Ø 250 mm × L 800 mm', 
-				spacing: { after: 120 } 
-			}));
-			
 			if (formData.wiring.system800.length > 0) {
-				wiringParas.push(new Paragraph({ text: 'HPT-800-85L 系統接線要求：', spacing: { before: 200, after: 100 } }));
+				wiringParas.push(new Paragraph({ 
+					children: [new TextRun({
+						text: 'HPT-800-85L 系統接線要求：',
+						font: '微軟正黑體',
+						size: 24
+					})],
+					spacing: { before: 200, after: 100 } 
+				}));
 				formData.wiring.system800.forEach(item => {
 					const componentText = item.componentSpec ? ` - 接頭零件規格：${item.componentSpec}` : '';
 					const remarkText = item.remark ? ` - 備註：${item.remark}` : '';
 					wiringParas.push(new Paragraph({ 
-						text: `(${item.port}) ${item.spec}${item.description ? ': ' + item.description : ''}${componentText}${remarkText}`, 
+						children: [new TextRun({
+							text: `(${item.port}) ${item.spec}${item.description ? ': ' + item.description : ''}${componentText}${remarkText}`,
+							font: '微軟正黑體',
+							size: 24
+						})],
 						spacing: { after: 80 } 
 					}));
 				});
@@ -664,10 +1035,11 @@ async function exportToDocx() {
 	// 建立文件
 	const docChildren = [
 		title,
+		dateParagraph,
 		h1('一、委託單位資料'),
 		companyTable,
-		h1('二、擬測試設備資料'),
-		equipTable,
+		h1('二、受測物資料'),
+		...testObjectsContent,
 		h1('三、壓力測試要求'),
 		...stepParas,
 		h1('四、測試時序圖')
@@ -682,14 +1054,30 @@ async function exportToDocx() {
 		docChildren.push(h1('五、接線要求'));
 		docChildren.push(...wiringParas);
 	}
+	
+	// 添加價格試算
+	try {
+		const pricingContent = generatePricingContent();
+		if (pricingContent.length > 0) {
+			docChildren.push(h1('六、價格試算'));
+			docChildren.push(...pricingContent);
+		}
+	} catch (error) {
+		console.error('生成價格試算內容時發生錯誤:', error);
+		// 跳過價格試算，繼續生成文件
+	}
 
 	const doc = new Document({
 		sections: [{ children: docChildren }]
 	});
 	
-	const blob = await Packer.toBlob(doc);
-	const fileName = `高壓艙申請表_${new Date().toISOString().slice(0,10)}.docx`;
-	triggerDownload(blob, fileName);
+		const blob = await Packer.toBlob(doc);
+		const fileName = `高壓艙申請表_${new Date().toISOString().slice(0,10)}.docx`;
+		triggerDownload(blob, fileName);
+	} catch (error) {
+		console.error('生成Word文件時發生錯誤:', error);
+		alert('生成文件時發生錯誤，請檢查控制台以獲取詳細信息。');
+	}
 }
 
 function dataURLToUint8Array(dataURL) {
@@ -699,6 +1087,180 @@ function dataURLToUint8Array(dataURL) {
 	const bytes = new Uint8Array(len);
 	for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
 	return bytes;
+}
+
+// 生成價格試算內容
+function generatePricingContent() {
+	const { Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, TextRun } = window.docx;
+	
+	// 獲取測試參數
+	const testParams = getTestParameters();
+	if (!testParams || testParams.totalTime === 0) {
+		return [];
+	}
+	
+	// 計算價格
+	const pricing = calculateBasePricing(testParams.maxPressure, testParams.totalTime);
+	const additionalFees = calculateAdditionalFees(pricing.basicTestFee);
+	
+	// 獲取額外服務選擇
+	const englishReportCheckbox = document.getElementById('englishReport');
+	const videoRecordingCheckbox = document.getElementById('videoRecording');
+	const englishReport = englishReportCheckbox && englishReportCheckbox.checked ? additionalFees.englishReport : 0;
+	const videoRecording = videoRecordingCheckbox && videoRecordingCheckbox.checked ? additionalFees.videoRecording : 0;
+	
+	const total = pricing.basicTestFee + englishReport + videoRecording;
+	
+	// 轉換時間格式
+	const formatTime = (minutes) => {
+		const hours = Math.floor(minutes / 60);
+		const mins = minutes % 60;
+		return mins > 0 ? `${hours}小時${mins}分鐘` : `${hours}小時`;
+	};
+	
+	const content = [];
+	
+	// 測試參數
+	content.push(new Paragraph({
+		children: [new TextRun({
+			text: '測試參數',
+			font: '微軟正黑體',
+			size: 28
+		})],
+		heading: HeadingLevel.HEADING_3,
+		spacing: { before: 200, after: 100 }
+	}));
+	
+	const paramsRows = [
+		['最大壓力', `${testParams.maxPressure} bar`],
+		['總測試時間', formatTime(testParams.totalTime)],
+		['選擇系統', testParams.systemName || '未選擇']
+	].map(([k, v]) => new TableRow({
+		children: [
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ text: k, bold: true, font: '微軟正黑體', size: 24 })],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 25, type: WidthType.PERCENTAGE },
+				shading: { fill: 'F2F2F2' }
+			}),
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ text: v, font: '微軟正黑體', size: 24 })],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 75, type: WidthType.PERCENTAGE }
+			})
+		]
+	}));
+	
+	content.push(new Table({
+		rows: paramsRows,
+		width: { size: 100, type: WidthType.PERCENTAGE },
+		borders: {
+			top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+		}
+	}));
+	
+	// 價格計算
+	content.push(new Paragraph({
+		children: [new TextRun({
+			text: '價格計算',
+			font: '微軟正黑體',
+			size: 28
+		})],
+		heading: HeadingLevel.HEADING_3,
+		spacing: { before: 200, after: 100 }
+	}));
+	
+	const pricingRows = [
+		['基本費用 (3小時內)', `NT$ ${pricing.baseFee.toLocaleString()}`]
+	];
+	
+	if (pricing.overtimeFee > 0) {
+		pricingRows.push(['超時費用 (第4-8小時)', `NT$ ${pricing.overtimeFee.toLocaleString()}`]);
+		pricingRows.push(['超時小時數', formatTime(pricing.overtimeMinutes)]);
+	}
+	
+	if (pricing.extendedOvertimeFee > 0) {
+		pricingRows.push(['延長超時費用 (第9小時起)', `NT$ ${pricing.extendedOvertimeFee.toLocaleString()}`]);
+		pricingRows.push(['延長超時小時數', formatTime(pricing.extendedOvertimeMinutes)]);
+	}
+	
+	pricingRows.push(['基本測試費用小計', `NT$ ${pricing.basicTestFee.toLocaleString()}`]);
+	
+	if (englishReport > 0) {
+		pricingRows.push(['英文測試報告', `NT$ ${englishReport.toLocaleString()}`]);
+	}
+	
+	if (videoRecording > 0) {
+		pricingRows.push(['錄影服務', `NT$ ${videoRecording.toLocaleString()}`]);
+	}
+	
+	pricingRows.push(['總計', `NT$ ${total.toLocaleString()}`]);
+	
+	const pricingTableRows = pricingRows.map(([k, v]) => new TableRow({
+		children: [
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ text: k, bold: true, font: '微軟正黑體', size: 24 })],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 25, type: WidthType.PERCENTAGE },
+				shading: { fill: k === '總計' ? 'E8F4FD' : 'F2F2F2' }
+			}),
+			new TableCell({ 
+				children: [new Paragraph({
+					children: [new TextRun({ 
+						text: v, 
+						bold: k === '總計',
+						color: k === '總計' ? '2C3E50' : '000000',
+						font: '微軟正黑體',
+						size: 24
+					})],
+					alignment: AlignmentType.CENTER
+				})],
+				width: { size: 75, type: WidthType.PERCENTAGE },
+				shading: { fill: k === '總計' ? 'E8F4FD' : 'FFFFFF' }
+			})
+		]
+	}));
+	
+	content.push(new Table({
+		rows: pricingTableRows,
+		width: { size: 100, type: WidthType.PERCENTAGE },
+		borders: {
+			top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+			insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+		}
+	}));
+	
+	// 免責聲明
+	content.push(new Paragraph({
+		children: [
+			new TextRun({
+				text: '※ 以上價格為試算價格，實際價格以最終報價為準。',
+				italic: true,
+				color: '666666',
+				size: 24,
+				font: '微軟正黑體'
+			})
+		],
+		spacing: { before: 300, after: 200 },
+		alignment: AlignmentType.CENTER
+	}));
+	
+	return content;
 }
 
 function triggerDownload(blob, fileName) {
@@ -740,6 +1302,22 @@ function setupWiringCheckboxes() {
 			}
 		});
 	});
+}
+
+// 初始化接線要求
+function initializeWiring() {
+	// 設置系統選擇事件
+	setupSystemSelection();
+	
+	// 設置接線選項事件
+	setupWiringCheckboxes();
+	
+	// 初始化預設選中的系統（HPT-450-230L）
+	const system450Radio = document.getElementById('system450');
+	if (system450Radio) {
+		// 觸發change事件來顯示對應的系統選項
+		system450Radio.dispatchEvent(new Event('change'));
+	}
 }
 
 // 設置系統選擇事件

@@ -308,6 +308,142 @@ textarea {
     height: auto;
 }
 
+/* 受測物清單樣式 */
+.test-objects-section {
+    margin-top: 20px;
+}
+
+.test-objects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.test-objects-header h3 {
+    color: #4a5568;
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.test-objects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.test-object-item {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.test-object-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.test-object-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.test-object-title {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 1.1rem;
+}
+
+.remove-test-object {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.remove-test-object:hover {
+    background: #c53030;
+}
+
+.test-object-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.test-object-form .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.test-object-form .form-group {
+    margin-bottom: 0;
+}
+
+.test-object-form label {
+    font-weight: 500;
+    color: #4a5568;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.test-object-form input,
+.test-object-form select,
+.test-object-form textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease;
+}
+
+.test-object-form input:focus,
+.test-object-form select:focus,
+.test-object-form textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.test-object-photo-preview {
+    margin-top: 10px;
+    width: 200px;
+    height: 150px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: none;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.test-object-photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.add-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
 /* 時序圖區域樣式 */
 .timeline-section {
     margin-top: 30px;
@@ -318,10 +454,17 @@ textarea {
 
 .timeline-section h3 {
     color: #4a5568;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 2px solid #667eea;
     font-size: 1.3rem;
+}
+
+.timeline-note {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    font-style: italic;
 }
 
 .timeline-section .btn {
@@ -390,10 +533,53 @@ textarea {
 /* 注意事項頁面樣式 */
 .notice-content {
     background: #f8fafc;
-    padding: 30px;
-    border-radius: 10px;
-    text-align: center;
-    color: #666;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+}
+
+.notice-list {
+    margin: 0;
+    padding-left: 22px;
+    line-height: 1.9;
+    counter-reset: notice-counter;
+}
+
+.notice-list > li {
+    list-style: none;
+    margin: 10px 0 8px 0;
+    font-weight: 600;
+}
+
+.notice-list > li::marker {
+    content: none;
+}
+
+.notice-list > li strong {
+    font-weight: 700;
+}
+
+.notice-list > li {
+    position: relative;
+}
+
+.notice-list > li::before {
+    counter-increment: notice-counter;
+    content: counter(notice-counter) ". ";
+    position: absolute;
+    left: -22px;
+    font-weight: 700;
+}
+
+.notice-list > li ul {
+    margin: 8px 0 0 18px;
+    padding: 0;
+    list-style: disc;
+    font-weight: 400;
+}
+
+.notice-list > li ul li {
+    margin: 4px 0;
 }
 
 .notice-content p {
@@ -560,44 +746,25 @@ textarea {
     cursor: pointer;
     font-weight: 500;
     color: #4a5568;
-    flex: 1;
+    flex: 1 1 0; /* 標籤占1份寬度 */
 }
 
-.checkbox-label input[type="checkbox"] {
+/* 讓輸入群組可佔較大空間 */
+.port-option .input-group {
     display: none;
-}
-
-.checkmark {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #cbd5e0;
-    border-radius: 4px;
-    position: relative;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-    background-color: #667eea;
-    border-color: #667eea;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 6px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.input-group {
-    display: flex;
     gap: 10px;
-    flex: 1;
+    flex: 2 1 0; /* 佔2份寬度，為標籤的兩倍 */
+    min-width: 0; /* 允許子項伸展 */
+}
+
+.input-group .component-input {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* 第二個輸入欄（備註）加寬為兩倍 */
+.input-group .component-input + .component-input {
+    flex: 2 1 0;
 }
 
 .component-input {
@@ -814,7 +981,7 @@ textarea {
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: none;
 }
 
 .total-item:last-child {
