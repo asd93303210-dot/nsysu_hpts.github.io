@@ -1264,7 +1264,9 @@ function generatePricingContent() {
 }
 
 function triggerDownload(blob, fileName) {
-	const url = URL.createObjectURL(blob);
+	// 強制設定正確的 MIME 類型，避免雲端/瀏覽器誤判
+	const docBlob = new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+	const url = URL.createObjectURL(docBlob);
 	const a = document.createElement('a');
 	a.href = url;
 	a.download = fileName;
