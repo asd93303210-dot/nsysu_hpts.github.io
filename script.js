@@ -1100,7 +1100,7 @@ function generatePricingContent() {
 	}
 	
 	// 計算價格
-	const pricing = calculateBasePricing(testParams.maxPressure, testParams.totalTime);
+	const pricing = calculateBasePricing(testParams.maxPressure, Math.round(testParams.totalTime));
 	const additionalFees = calculateAdditionalFees(pricing.basicTestFee);
 	
 	// 獲取額外服務選擇
@@ -1441,7 +1441,7 @@ function calculatePricing() {
 	if (!testParams.maxPressure || !testParams.totalTime) {
 		// 如果沒有測試參數，顯示預設值
 		updateTestParamsDisplay('-- bar', '-- 小時', '--');
-		updatePricingDisplay(0, 0, 0, 0, 0, 0, 0);
+		updatePricingDisplay(0, 0, 0, 0, 0, 0);
 		return;
 	}
 	
@@ -1457,7 +1457,7 @@ function calculatePricing() {
 	);
 	
 	// 計算基本費用（直接使用分鐘）
-	const pricing = calculateBasePricing(testParams.maxPressure, testParams.totalTime);
+	const pricing = calculateBasePricing(testParams.maxPressure, totalMinutes);
 	
 	// 計算額外服務費用
 	const additionalFees = calculateAdditionalFees(pricing.basicTestFee);
