@@ -249,6 +249,11 @@ textarea {
     box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
+/* 第一頁：僅顯示下一步時靠右 */
+.page.active#page1 ~ .form-controls {
+    justify-content: flex-end;
+}
+
 .btn {
     padding: 12px 25px;
     border: none;
