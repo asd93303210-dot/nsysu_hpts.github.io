@@ -98,9 +98,14 @@
                         </li>
                     </ol>
                 </div>
+                <label id="ackInlineContainer" class="ack-outside">
+                    <input type="checkbox" id="ackNotice">
+                    <span id="ackLabelText">已閱讀並同意上述注意事項，請勾選後方可進行下一步。</span>
+                </label>
             </section>
         </div>
 
+        
         <!-- 第二頁：委託單位資料 -->
         <div class="page" id="page2">
             <section class="form-section">
@@ -351,7 +356,7 @@
                             </div>
                             <div class="param-item">
                                 <label>總測試時間：</label>
-                                <span id="totalTime">-- 小時</span>
+                                <span id="totalTime">-- hr</span>
                             </div>
                             <div class="param-item">
                                 <label>選用系統：</label>
@@ -362,24 +367,23 @@
 
                     <!-- 價格計算結果 -->
                     <div class="price-calculation">
-                        <h3>價格計算</h3>
-                        <p class="price-note">說明：不足一小時以一小時計算，例如 2小時30分鐘 計 3小時。</p>
+                        <h3>標準測試</h3>
                         <div class="calculation-details">
                             <div class="base-fee">
                                 <div class="fee-item">
-                                    <span class="fee-label">基本費用 (3小時內)：</span>
+                                    <span class="fee-label">基本費用 (3 hr 內)：</span>
                                     <span class="fee-amount" id="baseFee">NT$ 0</span>
                                 </div>
                             </div>
                             
                             <div class="overtime-fee" id="overtimeSection" style="display: none;">
                                 <div class="fee-item">
-                                    <span class="fee-label">超時費用 (第4-8小時)：</span>
+                                    <span class="fee-label">超時費用 (第4-8 hr)：</span>
                                     <span class="fee-amount" id="overtimeFee">NT$ 0</span>
                                 </div>
                                 <div class="fee-item">
-                                    <span class="fee-label">超時小時數：</span>
-                                    <span class="fee-amount" id="overtimeHours">0 小時</span>
+                                    <span class="fee-label">超時時間：</span>
+                                    <span class="fee-amount" id="overtimeHours">0 hr</span>
                                 </div>
                             </div>
 
@@ -389,10 +393,15 @@
                                     <span class="fee-amount" id="extendedOvertimeFee">NT$ 0</span>
                                 </div>
                                 <div class="fee-item">
-                                    <span class="fee-label">延長超時小時數：</span>
-                                    <span class="fee-amount" id="extendedOvertimeHours">0 小時</span>
+                                    <span class="fee-label">延長超時時間：</span>
+                                    <span class="fee-amount" id="extendedOvertimeHours">0 hr</span>
                                 </div>
                             </div>
+                        </div>
+                        <p id="priceNote" class="price-note" style="text-align: right; display: none;">不足一小時以一小時計算。</p>
+                        <div class="fee-item" id="standardSubtotalRow" style="margin-top: 10px;">
+                            <span class="fee-label">小計：</span>
+                            <span class="fee-amount" id="standardSubtotal">NT$ 0</span>
                         </div>
                     </div>
 
@@ -405,7 +414,7 @@
                                 <span class="service-checkmark"></span>
                                 <div class="service-content">
                                     <h4>英文測試報告</h4>
-                                    <p>額外收費 NT$ 12,000</p>
+                                    <p>額外加收NT$ 12,000</p>
                                 </div>
                             </label>
                             <label class="service-option">
@@ -413,7 +422,7 @@
                                 <span class="service-checkmark"></span>
                                 <div class="service-content">
                                     <h4>錄影服務</h4>
-                                    <p>額外收費 標準費用的 5%</p>
+                                    <p>額外加收標準費用的 5%</p>
                                 </div>
                             </label>
                         </div>
@@ -423,7 +432,7 @@
                     <div class="total-summary">
                         <div class="total-breakdown">
                             <div class="total-item">
-                                <span class="total-label">基本測試費用：</span>
+                                <span class="total-label">標準測試費用：</span>
                                 <span class="total-amount" id="basicTestFee">NT$ 0</span>
                             </div>
                             <div class="total-item" id="englishReportFee" style="display: none;">
@@ -444,7 +453,7 @@
 
                     <!-- 優惠說明 -->
                     <div class="discount-notice">
-                        <p><strong>優惠說明：</strong>累計申請3次以上者可享有優惠價格，詳情請洽相關人員。</p>
+                        <p><strong>優惠說明：</strong>累計委託達3次以上者可享有優惠價格，詳情請洽相關人員。</p>
                     </div>
                 </div>
             </section>

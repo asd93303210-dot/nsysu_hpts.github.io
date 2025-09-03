@@ -7,6 +7,9 @@ let testObjectCounter = 1;
 
 // DOM 元素變數（將在DOMContentLoaded時初始化）
 let pages, navItems, prevBtn, nextBtn, submitBtn, addTestStepBtn, testSequence, timelineCanvas, addTestObjectBtn, testObjectsList;
+let ackNotice;
+let ackInlineContainer;
+let ackLabelText;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -21,8 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	timelineCanvas = document.getElementById('timelineCanvas');
 	addTestObjectBtn = document.getElementById('addTestObject');
 	testObjectsList = document.getElementById('testObjectsList');
+	ackNotice = document.getElementById('ackNotice');
+	ackInlineContainer = document.getElementById('ackInlineContainer');
+	ackLabelText = document.getElementById('ackLabelText');
 	
-
+	
 	
 	initializeForm();
 	setupEventListeners();
@@ -54,6 +60,10 @@ function setupEventListeners() {
 	navItems.forEach((item, index) => {
 		item.addEventListener('click', function() {
 			const pageNumber = parseInt(this.getAttribute('data-page'));
+			// 未勾選時禁止從第1頁跳轉到第2頁以上
+			if (pageNumber >= 2 && currentPage === 1 && !(ackNotice && ackNotice.checked)) {
+				return;
+			}
 			showPage(pageNumber);
 		});
 	});
@@ -66,6 +76,13 @@ function setupEventListeners() {
 	
 	// 價格試算事件
 	setupPricingCalculation();
+	
+	// 第一頁閱讀確認事件
+	if (ackNotice) {
+		ackNotice.addEventListener('change', function() {
+			updateNavigationButtons();
+		});
+	}
 }
 
 // 顯示指定頁面
@@ -116,19 +133,22 @@ function updateNavigationButtons() {
 	
 	if (currentPage === 1) {
 		prevBtn.disabled = true;
-	} else {
+		nextBtn.disabled = !(ackNotice && ackNotice.checked);
+	} else if (currentPage === 6) {
 		prevBtn.disabled = false;
-	}
-	
-	if (currentPage === 6) {
 		nextBtn.disabled = true;
 	} else {
+		prevBtn.disabled = false;
 		nextBtn.disabled = false;
 	}
 }
 
 // 下一頁
 function nextPage() {
+	// 第一頁需已勾選閱讀確認
+	if (currentPage === 1 && !(ackNotice && ackNotice.checked)) {
+		return;
+	}
 	if (currentPage < 6) {
 		showPage(currentPage + 1);
 	}
@@ -1115,7 +1135,7 @@ function generatePricingContent() {
 	const formatTime = (minutes) => {
 		const hours = Math.floor(minutes / 60);
 		const mins = minutes % 60;
-		return mins > 0 ? `${hours}小時${mins}分鐘` : `${hours}小時`;
+		return mins > 0 ? `${hours} hr ${mins} min` : `${hours} hr`;
 	};
 	
 	const content = [];
@@ -1442,7 +1462,7 @@ function calculatePricing() {
 	
 	if (!testParams.maxPressure || !testParams.totalTime) {
 		// 如果沒有測試參數，顯示預設值
-		updateTestParamsDisplay('-- bar', '-- 小時', '--');
+		updateTestParamsDisplay('-- bar', '-- hr', '--');
 		updatePricingDisplay(0, 0, 0, 0, 0, 0);
 		return;
 	}
@@ -1451,13 +1471,23 @@ function calculatePricing() {
 	const totalMinutes = Math.round(testParams.totalTime);
 	const hours = Math.floor(totalMinutes / 60);
 	const minutes = totalMinutes % 60;
-	const timeDisplay = minutes > 0 ? `${hours}小時${minutes}分鐘` : `${hours}小時`;
+	const timeDisplay = minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hr`;
 	updateTestParamsDisplay(
 		`${testParams.maxPressure} bar`,
 		timeDisplay,
 		testParams.systemName
 	);
-	
+
+	// 控制「不足一小時以一小時計算」說明顯示條件：>=3小時且有分鐘
+	const priceNoteEl = document.getElementById('priceNote');
+	if (priceNoteEl) {
+		if (totalMinutes >= 180 && minutes > 0) {
+			priceNoteEl.style.display = 'block';
+		} else {
+			priceNoteEl.style.display = 'none';
+		}
+	}
+
 	// 計算基本費用（直接使用分鐘）
 	const pricing = calculateBasePricing(testParams.maxPressure, totalMinutes);
 	
@@ -1478,6 +1508,12 @@ function calculatePricing() {
 	// 計算總計
 	const total = pricing.basicTestFee + additionalFees.englishReport + additionalFees.videoRecording;
 	updateTotalDisplay(pricing.basicTestFee, additionalFees.englishReport, additionalFees.videoRecording, total);
+
+	// 更新標準測試費用小計（基本費 + 超時 + 延長）
+	const standardSubtotalEl = document.getElementById('standardSubtotal');
+	if (standardSubtotalEl) {
+		standardSubtotalEl.textContent = `NT$ ${pricing.basicTestFee.toLocaleString()}`;
+	}
 }
 
 // 獲取測試參數
@@ -1608,7 +1644,7 @@ function updatePricingDisplay(baseFee, overtimeFee, overtimeMinutes, extendedOve
 		const overtimeH = Math.floor(overtimeMinutes / 60);
 		const overtimeM = overtimeMinutes % 60;
 		const roundedOvertimeH = Math.ceil(overtimeMinutes / 60);
-		const overtimeDisplay = overtimeM > 0 ? `${overtimeH}小時${overtimeM}分鐘 (計${roundedOvertimeH}小時)` : `${overtimeH}小時`;
+		const overtimeDisplay = overtimeM > 0 ? `${overtimeH} hr ${overtimeM} min (計${roundedOvertimeH} hr)` : `${overtimeH} hr`;
 		overtimeHoursElement.textContent = overtimeDisplay;
 	} else {
 		overtimeSection.style.display = 'none';
@@ -1625,7 +1661,7 @@ function updatePricingDisplay(baseFee, overtimeFee, overtimeMinutes, extendedOve
 		const extendedH = Math.floor(extendedOvertimeMinutes / 60);
 		const extendedM = extendedOvertimeMinutes % 60;
 		const roundedExtendedH = Math.ceil(extendedOvertimeMinutes / 60);
-		const extendedDisplay = extendedM > 0 ? `${extendedH}小時${extendedM}分鐘 (計${roundedExtendedH}小時)` : `${extendedH}小時`;
+		const extendedDisplay = extendedM > 0 ? `${extendedH} hr ${extendedM} min (計${roundedExtendedH} hr)` : `${extendedH} hr`;
 		extendedOvertimeHoursElement.textContent = extendedDisplay;
 	} else {
 		extendedOvertimeSection.style.display = 'none';
