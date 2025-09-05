@@ -36,6 +36,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	addDefaultTestObject();
 });
 
+// 將數值格式化為一位小數（字串），空值則回空字串
+function formatToOneDecimal(value) {
+	if (value === null || value === undefined || value === '') return '';
+	const num = parseFloat(value);
+	if (isNaN(num)) return '';
+	return (Math.round(num * 10) / 10).toFixed(1);
+}
+
 // 初始化表單
 function initializeForm() {
 	showPage(1);
@@ -62,7 +70,21 @@ function setupEventListeners() {
 			const pageNumber = parseInt(this.getAttribute('data-page'));
 			// 未勾選時禁止從第1頁跳轉到第2頁以上
 			if (pageNumber >= 2 && currentPage === 1 && !(ackNotice && ackNotice.checked)) {
+				alert('請先詳讀「注意事項」，並於頁尾勾選同意後再進行下一步。');
 				return;
+			}
+			// 第2、3階段必填檢查：從當前頁嘗試跳至更後頁面時
+			if (currentPage === 2 && pageNumber > 2) {
+				if (!validatePage2Required()) {
+					alert('請先完成第2階段之必填欄位（標示*），再進行下一步。');
+					return;
+				}
+			}
+			if (currentPage === 3 && pageNumber > 3) {
+				if (!validatePage3Required()) {
+					alert('請先完成第3階段之必填欄位（標示*），再進行下一步。');
+					return;
+				}
 			}
 			showPage(pageNumber);
 		});
@@ -108,6 +130,11 @@ function showPage(pageNumber) {
 		updateTestSteps();
 	}
 	
+	// 如果是第五頁，套用系統選擇限制
+	if (pageNumber === 5) {
+		enforceSystemEligibility();
+	}
+	
 	// 如果是第六頁，計算價格
 	if (pageNumber === 6) {
 		calculatePricing();
@@ -133,7 +160,8 @@ function updateNavigationButtons() {
 	
 	if (currentPage === 1) {
 		prevBtn.disabled = true;
-		nextBtn.disabled = !(ackNotice && ackNotice.checked);
+		// 讓下一步可點擊以便顯示提醒
+		nextBtn.disabled = false;
 	} else if (currentPage === 6) {
 		prevBtn.disabled = false;
 		nextBtn.disabled = true;
@@ -147,7 +175,22 @@ function updateNavigationButtons() {
 function nextPage() {
 	// 第一頁需已勾選閱讀確認
 	if (currentPage === 1 && !(ackNotice && ackNotice.checked)) {
+		alert('請先詳讀「注意事項」，並於頁尾勾選同意後再進行下一步。');
 		return;
+	}
+	// 第二頁必填檢查
+	if (currentPage === 2) {
+		if (!validatePage2Required()) {
+			alert('請先完成第2階段之必填欄位（標示*），再進行下一步。');
+			return;
+		}
+	}
+	// 第三頁必填檢查
+	if (currentPage === 3) {
+		if (!validatePage3Required()) {
+			alert('請先完成第3階段之必填欄位（標示*），再進行下一步。');
+			return;
+		}
 	}
 	if (currentPage < 6) {
 		showPage(currentPage + 1);
@@ -202,12 +245,18 @@ function updateTestSteps() {
 	
 	// 任何重繪後都觸發時序圖自動更新
 	autoUpdateTimeline();
+	// 根據最大壓力限制第5階段系統選擇
+	enforceSystemEligibility();
 }
 
 // 創建測試步驟元素
 function createTestStepElement(step, stepNumber) {
 	const stepDiv = document.createElement('div');
 	stepDiv.className = 'test-step';
+
+	// 取得前一步的目標壓力（用於持壓同步）
+	const idx = testSteps.indexOf(step);
+	const prevStep = idx > 0 ? testSteps[idx - 1] : null;
 	
 	// 根據測試類型顯示不同的表單欄位
 	let typeSpecificFields = '';
@@ -241,6 +290,20 @@ function createTestStepElement(step, stepNumber) {
 		`;
 	}
 	
+	// 決定目標壓力輸入的屬性（持壓時鎖定並套用上一段壓力）
+	let pressureValue = step.pressure || '';
+	let pressureAttrs = 'step="0.1" min="0"';
+	if (step.type === 'hold') {
+		// 若有上一段壓力，沿用並鎖定；否則保持可輸入
+		if (prevStep && prevStep.pressure !== undefined && prevStep.pressure !== '') {
+			pressureValue = formatToOneDecimal(prevStep.pressure);
+			step.pressure = pressureValue;
+			pressureAttrs += ' disabled readonly title="持壓步驟之目標壓力自動沿用上一段，無法手動修改"';
+		}
+	}
+	// 顯示時一律套用一位小數（若非空）
+	pressureValue = pressureValue !== '' ? formatToOneDecimal(pressureValue) : '';
+
 	stepDiv.innerHTML = `
 		<div class="test-step-header">
 			<span class="step-number">${stepNumber}</span>
@@ -257,7 +320,7 @@ function createTestStepElement(step, stepNumber) {
 			</div>
 			<div class="form-group">
 				<label>目標壓力 (bar)</label>
-				<input type="number" step="0.1" min="0" value="${step.pressure}" 
+				<input type="number" ${pressureAttrs} value="${pressureValue}" 
 				       onchange="updateStepPressure(${step.id}, this.value)" placeholder="例如: 2.5">
 			</div>
 			${typeSpecificFields}
@@ -280,6 +343,12 @@ function updateStepType(stepId, type) {
 		// 清除舊的相關欄位
 		if (type === 'hold') {
 			delete step.rate;
+			// 將持壓的目標壓力同步為上一段壓力
+			const idx = testSteps.findIndex(s => s.id === stepId);
+			const prev = idx > 0 ? testSteps[idx - 1] : null;
+			if (prev && prev.pressure !== undefined && prev.pressure !== '') {
+				step.pressure = formatToOneDecimal(prev.pressure);
+			}
 		} else {
 			delete step.holdTime;
 		}
@@ -312,7 +381,13 @@ function updateStepHoldTime(stepId, holdTime) {
 function updateStepPressure(stepId, pressure) {
 	const step = testSteps.find(s => s.id === stepId);
 	if (step) {
-		step.pressure = pressure;
+		step.pressure = formatToOneDecimal(pressure);
+		// 若下一步是持壓，則同步其目標壓力
+		const idx = testSteps.findIndex(s => s.id === stepId);
+		const next = idx >= 0 && idx + 1 < testSteps.length ? testSteps[idx + 1] : null;
+		if (next && next.type === 'hold') {
+			next.pressure = formatToOneDecimal(pressure);
+		}
 		updateTestSteps();
 		autoUpdateTimeline();
 	}
@@ -330,19 +405,19 @@ function updateStepDescription(stepId, description) {
 function generateStepDescription(step) {
 	if (step.type === 'pressure') {
 		if (step.pressure && step.rate) {
-			return `增壓至${step.pressure} bar，速率${step.rate} bar/min。`;
+			return `增壓至 ${step.pressure} bar，速率 ${step.rate} bar/min。`;
 		}
-		return `增壓至${step.pressure || ''} bar，速率${step.rate || ''} bar/min。`;
+		return `增壓至${step.pressure || ''} bar，速率 ${step.rate || ''} bar/min。`;
 	} else if (step.type === 'depressurize') {
 		if (step.pressure && step.rate) {
-			return `降壓至${step.pressure} bar，速率${step.rate} bar/min。`;
+			return `降壓至 ${step.pressure} bar，速率 ${step.rate} bar/min。`;
 		}
-		return `降壓至${step.pressure || ''} bar，速率${step.rate || ''} bar/min。`;
+		return `降壓至${step.pressure || ''} bar，速率 ${step.rate || ''} bar/min。`;
 	} else if (step.type === 'hold') {
 		if (step.pressure && step.holdTime) {
-			return `持壓${step.pressure} bar，持續${step.holdTime} min。`;
+			return `持壓 ${step.pressure} bar，持續 ${step.holdTime} min。`;
 		}
-		return `持壓${step.pressure || ''} bar，持續${step.holdTime || ''} min。`;
+		return `持壓 ${step.pressure || ''} bar，持續 ${step.holdTime || ''} min。`;
 	}
 	return '';
 }
@@ -368,7 +443,7 @@ function addDefaultTestObject() {
 		quantity: '1',
 		size: '',
 		waterStatus: '',
-		photo: '',
+		photos: [],
 		notes: ''
 	};
 	
@@ -384,7 +459,7 @@ function addTestObject() {
 		quantity: '1',
 		size: '',
 		waterStatus: '',
-		photo: '',
+		photos: [],
 		notes: ''
 	};
 	
@@ -455,9 +530,11 @@ function createTestObjectElement(obj, objectNumber) {
 				</select>
 			</div>
 			<div class="form-group full-width">
-				<label>受測物照片</label>
-				<input type="file" accept="image/*" onchange="handleTestObjectPhotoUpload(${obj.id}, this)">
-				<div class="test-object-photo-preview" id="photoPreview_${obj.id}" ${obj.photo ? 'style="display: block;"' : ''}>${obj.photo ? `<img src="${obj.photo}" alt="受測物照片">` : ''}</div>
+				<label>受測物照片（最多3張）</label>
+				<input type="file" accept="image/*" multiple onchange="handleTestObjectPhotosUpload(${obj.id}, this)">
+				<div class="test-object-photo-preview" id="photoPreview_${obj.id}" style="display: ${obj.photos && obj.photos.length ? 'block' : 'none'};">
+					${(obj.photos || []).map((src, i) => `<div class=\"photo-item\"><img src=\"${src}\" alt=\"受測物照片\"><button type=\"button\" class=\"remove-photo\" onclick=\"removeTestObjectPhoto(${obj.id}, ${i})\">移除</button></div>`).join('')}
+				</div>
 			</div>
 			<div class="form-group full-width">
 				<label>備註</label>
@@ -509,23 +586,41 @@ function updateTestObjectNotes(objectId, notes) {
 	}
 }
 
-// 處理受測物照片上傳
-function handleTestObjectPhotoUpload(objectId, input) {
-	const file = input.files[0];
-	if (file) {
+// 處理受測物多張照片上傳（最多3張）
+function handleTestObjectPhotosUpload(objectId, input) {
+	const files = Array.from(input.files || []);
+	if (files.length === 0) return;
+	const obj = testObjects.find(o => o.id === objectId);
+	if (!obj) return;
+	if (!Array.isArray(obj.photos)) obj.photos = [];
+	const remain = Math.max(0, 3 - obj.photos.length);
+	const toRead = files.slice(0, remain);
+	if (toRead.length === 0) {
+		alert('最多可上傳 3 張照片');
+		input.value = '';
+		return;
+	}
+	let pending = toRead.length;
+	toRead.forEach(file => {
 		const reader = new FileReader();
 		reader.onload = function(e) {
-			const obj = testObjects.find(o => o.id === objectId);
-			if (obj) {
-				obj.photo = e.target.result;
+			obj.photos.push(e.target.result);
+			pending -= 1;
+			if (pending === 0) {
+				updateTestObjects();
 			}
-			
-			const preview = document.getElementById(`photoPreview_${objectId}`);
-			preview.innerHTML = `<img src="${e.target.result}" alt="受測物照片">`;
-			preview.style.display = 'block';
 		};
 		reader.readAsDataURL(file);
-	}
+	});
+	input.value = '';
+}
+
+// 移除指定索引的照片
+function removeTestObjectPhoto(objectId, index) {
+	const obj = testObjects.find(o => o.id === objectId);
+	if (!obj || !Array.isArray(obj.photos)) return;
+	obj.photos.splice(index, 1);
+	updateTestObjects();
 }
 
 // 移除不再使用的照片上傳函數
@@ -921,30 +1016,31 @@ async function exportToDocx() {
 			
 			testObjectsContent.push(objectTable);
 			
-			// 如果有照片，添加照片
-			if (obj.photo) {
+			// 如果有照片（多張），添加照片
+			if (obj.photos && Array.isArray(obj.photos) && obj.photos.length > 0) {
 				try {
-					const imageData = obj.photo.split(',')[1];
-					const imageBuffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
-					
-					testObjectsContent.push(
-						new Paragraph({
-							text: '受測物照片：',
-							spacing: { before: 200, after: 100 }
-						}),
-						new Paragraph({
-							children: [
-								new ImageRun({
-									data: imageBuffer,
-									transformation: {
-										width: 300,
-										height: 200,
-									},
-								}),
-							],
-							alignment: AlignmentType.CENTER,
-						})
-					);
+					testObjectsContent.push(new Paragraph({
+						text: '受測物照片：',
+						spacing: { before: 200, after: 100 }
+					}));
+					obj.photos.forEach((photoDataUrl) => {
+						try {
+							const imageData = photoDataUrl.split(',')[1];
+							const imageBuffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+							testObjectsContent.push(new Paragraph({
+								children: [
+									new ImageRun({
+										data: imageBuffer,
+										transformation: { width: 300, height: 200 },
+									}),
+								],
+								alignment: AlignmentType.CENTER,
+								espacing: { after: 100 }
+							}));
+						} catch (innerErr) {
+							console.error('處理單張照片時發生錯誤:', innerErr);
+						}
+					});
 				} catch (error) {
 					console.error('處理照片時發生錯誤:', error);
 				}
@@ -1340,6 +1436,32 @@ function initializeWiring() {
 		// 觸發change事件來顯示對應的系統選項
 		system450Radio.dispatchEvent(new Event('change'));
 	}
+	// 初始化時依最大壓力限制可選系統
+	enforceSystemEligibility();
+}
+
+// 依最大壓力限制系統選擇（>450 bar 禁用 HPT-450-230L）
+function enforceSystemEligibility() {
+	const params = getTestParameters();
+	const radio450 = document.getElementById('system450');
+	const radio800 = document.getElementById('system800');
+	const label450 = radio450 ? radio450.closest('.system-radio-label') : null;
+	if (!radio450 || !radio800) return;
+	const maxP = parseFloat(params && params.maxPressure ? params.maxPressure : 0);
+	if (!isNaN(maxP) && maxP > 450) {
+		radio450.disabled = true;
+		if (label450) label450.classList.add('disabled');
+		if (radio450.checked) {
+			radio450.checked = false;
+			radio800.checked = true;
+			radio800.dispatchEvent(new Event('change'));
+		}
+		radio450.title = '目標壓力超過 450 bar，無法選用 HPT-450-230L';
+	} else {
+		radio450.disabled = false;
+		if (label450) label450.classList.remove('disabled');
+		radio450.title = '';
+	}
 }
 
 // 設置系統選擇事件
@@ -1693,4 +1815,27 @@ function updateTotalDisplay(basicTestFee, englishReport, videoRecording, total) 
 	
 	// 總計
 	document.getElementById('finalTotal').textContent = `NT$ ${total.toLocaleString()}`;
+}
+
+// 第2階段必填檢查
+function validatePage2Required() {
+	const name = document.getElementById('companyName')?.value?.trim();
+	const taxId = document.getElementById('taxId')?.value?.trim();
+	const address = document.getElementById('address')?.value?.trim();
+	const contactPerson = document.getElementById('contactPerson')?.value?.trim();
+	const contactPhone = document.getElementById('contactPhone')?.value?.trim();
+	const contactEmail = document.getElementById('contactEmail')?.value?.trim();
+	return !!(name && taxId && address && contactPerson && contactPhone && contactEmail);
+}
+
+// 第3階段必填檢查（依據 testObjects 資料）
+function validatePage3Required() {
+	if (!Array.isArray(testObjects) || testObjects.length === 0) return false;
+	for (let i = 0; i < testObjects.length; i++) {
+		const obj = testObjects[i];
+		if (!obj) return false;
+		const hasAll = (obj.name && obj.name.trim()) && (obj.quantity && obj.quantity.trim()) && (obj.size && obj.size.trim()) && (obj.waterStatus && obj.waterStatus.trim());
+		if (!hasAll) return false;
+	}
+	return true;
 }

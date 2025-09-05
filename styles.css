@@ -448,8 +448,8 @@ textarea {
 
 .test-object-photo-preview {
     margin-top: 10px;
-    width: 200px;
-    height: 150px;
+    width: 100%;
+    min-height: 150px;
     border-radius: 6px;
     overflow: hidden;
     display: none;
@@ -457,12 +457,10 @@ textarea {
     border: 1px solid #e2e8f0;
 }
 
-.test-object-photo-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 6px;
-}
+.test-object-photo-preview .photo-item { display: inline-flex; align-items: center; gap: 8px; margin: 6px; padding: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
+.test-object-photo-preview .photo-item img { width: 200px; height: 150px; object-fit: contain; border-radius: 4px; background: #fafafa; }
+.test-object-photo-preview .remove-photo { background: #e53e3e; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+.test-object-photo-preview .remove-photo:hover { background: #c53030; }
 
 .add-button-container {
     display: flex;
@@ -688,6 +686,16 @@ textarea {
 
 .system-radio-label input[type="radio"] {
     display: none;
+}
+
+/* 禁用狀態的系統選項（由JS加上 .disabled） */
+.system-radio-label.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.system-radio-label.disabled:hover {
+    border-color: #e2e8f0;
+    box-shadow: none;
 }
 
 .radio-custom {
