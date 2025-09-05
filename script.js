@@ -224,6 +224,15 @@ function addTestStep() {
 
 // 移除測試步驟
 function removeTestStep(stepId) {
+	// 最少需保留2個步驟
+	if (testSteps.length <= 2) {
+		return;
+	}
+	// 第一步驟不得移除
+	const firstStepId = testSteps.length > 0 ? testSteps[0].id : null;
+	if (stepId === firstStepId) {
+		return;
+	}
 	testSteps = testSteps.filter(step => step.id !== stepId);
 	updateTestSteps();
 	autoUpdateTimeline();
@@ -247,6 +256,20 @@ function updateTestSteps() {
 	autoUpdateTimeline();
 	// 根據最大壓力限制第5階段系統選擇
 	enforceSystemEligibility();
+
+	// 控制移除按鈕顯示：< 2 個隱藏；第 1 個永遠隱藏
+	const allSteps = testSequence.querySelectorAll('.test-step');
+	allSteps.forEach((el, idx) => {
+		const removeBtn = el.querySelector('.remove-step');
+		if (!removeBtn) return;
+		if (idx === 0) {
+			removeBtn.style.display = 'none';
+		} else if (testSteps.length <= 2) {
+			removeBtn.style.display = 'none';
+		} else {
+			removeBtn.style.display = 'inline-block';
+		}
+	});
 }
 
 // 創建測試步驟元素
@@ -312,7 +335,7 @@ function createTestStepElement(step, stepNumber) {
 		<div class="test-step-grid">
 			<div class="form-group">
 				<label>測試類型</label>
-				<select onchange="updateStepType(${step.id}, this.value)">
+				<select onchange="updateStepType(${step.id}, this.value)" ${stepNumber === 1 ? 'disabled' : ''}>
 					<option value="pressure" ${step.type === 'pressure' ? 'selected' : ''}>增壓</option>
 					<option value="depressurize" ${step.type === 'depressurize' ? 'selected' : ''}>降壓</option>
 					<option value="hold" ${step.type === 'hold' ? 'selected' : ''}>持壓</option>
@@ -339,6 +362,11 @@ function createTestStepElement(step, stepNumber) {
 function updateStepType(stepId, type) {
 	const step = testSteps.find(s => s.id === stepId);
 	if (step) {
+		// 第一個步驟強制為增壓且不可修改
+		const isFirst = testSteps.length > 0 && testSteps[0].id === stepId;
+		if (isFirst) {
+			return;
+		}
 		step.type = type;
 		// 清除舊的相關欄位
 		if (type === 'hold') {
@@ -429,6 +457,9 @@ function addDefaultTestStep() {
 		{ id: stepCounter++, type: 'hold', pressure: '5.0', holdTime: '30', description: '' },
 		{ id: stepCounter++, type: 'depressurize', pressure: '0', rate: '1.0', description: '' }
 	];
+	
+	// 保證第一步為增壓
+	defaultSteps[0].type = 'pressure';
 	
 	testSteps = defaultSteps;
 	updateTestSteps();
